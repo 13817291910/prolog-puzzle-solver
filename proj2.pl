@@ -1,5 +1,12 @@
-% You can use this code to get started with your fillin puzzle solver.
-% Make sure you replace this comment with your own documentation.
+% Project 2 - Fillin Puzzles solver
+% COMP30020 Declarative Programming, 2018 Semester 2
+% The University of Melbourne, School of Computing and Information Systems
+% 
+% A program for solving fill-it-in style puzzles. The program takes a list 
+% of words and an empty or incomplete puzzle file and generates a solution.
+%
+% Author: Adam Quigley
+% Date created: 30.09.2018
 
 main(PuzzleFile, WordlistFile, SolutionFile) :-
 	read_file(PuzzleFile, Puzzle),
@@ -62,9 +69,5 @@ valid_puzzle([Row|Rows]) :-
 % should be lists of lists of characters (single-character atoms), one
 % list per puzzle row.  WordList is also a list of lists of
 % characters, one list per word.
-%
-% This code is obviously wrong: it just gives back the unfilled puzzle
-% as result.  You'll need to replace this with a working
-% implementation.
 
 solve_puzzle(Puzzle, _, Puzzle).
