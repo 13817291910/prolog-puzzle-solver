@@ -11,11 +11,16 @@
 :- ensure_loaded(library(clpfd)).
 
 main(PuzzleFile, WordlistFile, SolutionFile) :-
-	read_file(PuzzleFile, Puzzle),
+	read_file(PuzzleFile, PuzzleCharList),
 	read_file(WordlistFile, Wordlist),
-	valid_puzzle(Puzzle),
+	valid_puzzle(PuzzleCharList),
+	create_free_variables(PuzzleCharList, Puzzle),
 	solve_puzzle(Puzzle, Wordlist, Solved),
 	print_puzzle(SolutionFile, Solved).
+
+valid_puzzle([]).
+valid_puzzle([Row|Rows]) :-
+	maplist(same_length(Row), Rows).
 
 read_file(Filename, Content) :-
 	open(Filename, read, Stream),
@@ -60,11 +65,6 @@ put_puzzle_char(Stream, Char) :-
 	;   put_char(Stream, Char)
 	).
 
-valid_puzzle([]).
-valid_puzzle([Row|Rows]) :-
-	maplist(same_length(Row), Rows).
-
-
 % should hold when Puzzle is a solved version of Puzzle0, with the
 % empty slots filled in with words from WordList.  Puzzle0 and Puzzle
 % should be lists of lists of characters (single-character atoms), one
@@ -90,3 +90,14 @@ map_row_vars(Row, NewRow) :-
 create_free_variables(Puzzle, FreeVariablePuzzle) :-
 	maplist(map_row_vars, Puzzle, ResultPuzzle),
 	FreeVariablePuzzle = ResultPuzzle.
+
+% find slots inside puzzle rows / columns
+% a slot is a sequence of non-solid squares greater than one in length
+get_slots_from_row([], Accum, Accum).
+get_slots_from_row([H|T], Accum, Slot) :-
+	(	var(H)
+	->	get_slots_from_row(T, [H|Accum], Slot)
+	;	get_slots_from_row(T, Accum, Slot)
+	).
+
+
