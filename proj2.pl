@@ -93,12 +93,12 @@ create_free_variables(Puzzle, FreeVariablePuzzle) :-
 
 % find slots inside puzzle rows / columns
 % a slot is a sequence of non-solid squares greater than one in length
-% if free var is found, add to Accumulator
+% if free var or non '#' character is found, add to Accumulator
 % if non-free var found but none accumalted, keep searching
 % if non-free var found but only one var accumulated, reset accum
 %	and keep searching. Slots must have a length greater than one
 % if non-free var found and some accumulated, add slot to Slots and reset Accum
-get_slots([], Accum, AccumList, Slots) :-
+get_row_slots([], Accum, AccumList, Slots) :-
 	(	length(Accum, 0)
 	->	Slots = AccumList
 	;	length(Accum, 1)
@@ -106,13 +106,16 @@ get_slots([], Accum, AccumList, Slots) :-
 	;	NewAccumList = [Accum | AccumList],
 		Slots = NewAccumList
 	).
-get_slots([H|T], Accum, AccumList, Slots) :-
+get_row_slots([H|T], Accum, AccumList, Slots) :-
 	(	var(H)
-	->	get_slots(T, [H|Accum], AccumList, Slots)
+	->	get_row_slots(T, [H|Accum], AccumList, Slots)
+	;	H \= '#'
+	->	get_row_slots(T, [H|Accum], AccumList, Slots)
 	;	length(Accum, 0)
-	->	get_slots(T, Accum, AccumList, Slots)
+	->	get_row_slots(T, Accum, AccumList, Slots)
 	;	length(Accum, 1)
-	->	get_slots(T, [], AccumList, Slots)
+	->	get_row_slots(T, [], AccumList, Slots)
 	;	NewAccumList = [Accum | AccumList],
-		get_slots(T, [], NewAccumList, Slots)
+		get_row_slots(T, [], NewAccumList, Slots)
 	).
+
