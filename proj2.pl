@@ -15,7 +15,8 @@ main(PuzzleFile, WordlistFile, SolutionFile) :-
 	read_file(WordlistFile, Wordlist),
 	valid_puzzle(PuzzleCharList),
 	create_free_variables(PuzzleCharList, Puzzle),
-	solve_puzzle(Puzzle, Wordlist, Solved),
+	find_all_puzzle_slots(Puzzle, Slots),
+	solve_puzzle(Puzzle, Slots, Wordlist, Solved),
 	print_puzzle(SolutionFile, Solved).
 
 valid_puzzle([]).
@@ -71,7 +72,7 @@ put_puzzle_char(Stream, Char) :-
 % list per puzzle row.  WordList is also a list of lists of
 % characters, one list per word.
 
-solve_puzzle(Puzzle, _, Puzzle).
+solve_puzzle(Puzzle, _, _, Puzzle).
 
 % replace any underscore character with a free variable
 logical_variable(Char, Result) :-
@@ -125,3 +126,12 @@ get_all_slots([H|T], Accum, AllSlots) :-
 	get_row_slots(H, [], [], RowSlots),
 	append(Accum, RowSlots, AccumList),
 	get_all_slots(T, AccumList, AllSlots).
+
+% finds all the slots in a puzzle by looking at both rows and cols
+% the puzzle must be a valid puzzle otherwise transpose will fail
+find_all_puzzle_slots(RowPuzzle, AllSlots) :-
+	get_all_slots(RowPuzzle, [], RowSlots),
+	transpose(RowPuzzle, ColPuzzle),
+	get_all_slots(ColPuzzle, [], ColSlots),
+	append(RowSlots, [], Accum),
+	append(ColSlots, Accum, AllSlots).
