@@ -121,9 +121,11 @@ get_row_slots([H|T], Accum, AccumList, Slots) :-
 	).
 
 % finds all the slots within a given puzzle transposition
+% rows are reversed because get_row_slots constructs lists backwards
 get_all_slots([], Accum, Accum).
 get_all_slots([H|T], Accum, AllSlots) :-
-	get_row_slots(H, [], [], RowSlots),
+	reverse(H, Row),
+	get_row_slots(Row, [], [], RowSlots),
 	append(Accum, RowSlots, AccumList),
 	get_all_slots(T, AccumList, AllSlots).
 
