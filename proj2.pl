@@ -137,3 +137,16 @@ find_all_puzzle_slots(RowPuzzle, AllSlots) :-
 	get_all_slots(ColPuzzle, [], ColSlots),
 	append(RowSlots, [], Accum),
 	append(ColSlots, Accum, AllSlots).
+
+
+%get_next_slot(Slots, NextSlot)
+
+% return the numbers of free variables in a list
+% e.g. free_var_length([X, a, Y], L) -> L = 2
+free_var_length([],0).
+free_var_length([H|T], L) :-
+	( 	var(H)
+	-> free_var_length(T, L1),
+		L is L1 + 1
+	;	free_var_length(T, L)
+	).
