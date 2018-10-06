@@ -138,9 +138,6 @@ find_all_puzzle_slots(RowPuzzle, AllSlots) :-
 	append(RowSlots, [], Accum),
 	append(ColSlots, Accum, AllSlots).
 
-
-%get_next_slot(Slots, NextSlot)
-
 % return the numbers of free variables in a list
 % e.g. free_var_length([X, a, Y], L) -> L = 2
 free_var_length([],0).
@@ -150,3 +147,20 @@ free_var_length([H|T], L) :-
 		L is L1 + 1
 	;	free_var_length(T, L)
 	).
+
+% finds the first slot in a list of slots with the highest number
+% of un-unified variables to be next considered
+get_max_fillable_slot([], CurrSlot, CurrSlot).
+get_max_fillable_slot([NextSlot|T], CurrSlot, MaxSlot) :-
+	(	more_fillable(CurrSlot, NextSlot)
+	->	get_max_fillable_slot(T, NextSlot, MaxSlot)
+	;	get_max_fillable_slot(T, CurrSlot, MaxSlot)
+	).
+
+% true if a slot is more fillable that the currently considered slot
+% meaning there are more free variables to be unified
+more_fillable(CurrMaxSlot, NextSlot) :-
+	free_var_length(CurrMaxSlot, L1),
+	free_var_length(NextSlot, L2),
+	L2 > L1.
+	
