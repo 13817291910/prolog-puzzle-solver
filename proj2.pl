@@ -181,3 +181,11 @@ are_unifiable(Slot, Word) :-
 	same_length(Slot, Word),
 	chars_match(Slot, Word).
 	
+% finds the first word in a list of words that is able to be unified 
+% with a given slot and binds it to Word
+get_unifiable_word([], _, []).
+get_unifiable_word([WordsHead|WordsTail], Slot, Word) :-
+	(	are_unifiable(Slot, WordsHead)
+	->	Word = WordsHead
+	;	get_unifiable_word(WordsTail, Slot, Word)
+	).
