@@ -91,7 +91,7 @@ create_free_variables(Puzzle, FreeVariablePuzzle) :-
 	maplist(map_row_vars, Puzzle, ResultPuzzle),
 	FreeVariablePuzzle = ResultPuzzle.
 
-% find slots inside puzzle rows / columns
+% find slots inside a puzzles row or column
 % a slot is a sequence of non-solid squares greater than one in length
 % if free var or non '#' character is found, add to Accumulator
 % if non-free var found but none accumalted, keep searching
@@ -119,3 +119,9 @@ get_row_slots([H|T], Accum, AccumList, Slots) :-
 		get_row_slots(T, [], NewAccumList, Slots)
 	).
 
+% finds all the slots within a given puzzle transposition
+get_all_slots([], Accum, Accum).
+get_all_slots([H|T], Accum, AllSlots) :-
+	get_row_slots(H, [], [], RowSlots),
+	append(Accum, RowSlots, AccumList),
+	get_all_slots(T, AccumList, AllSlots).
