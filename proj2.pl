@@ -163,4 +163,21 @@ more_fillable(CurrMaxSlot, NextSlot) :-
 	free_var_length(CurrMaxSlot, L1),
 	free_var_length(NextSlot, L2),
 	L2 > L1.
+
+% evaluates true if all the terms in a slot match the corresponding characters
+% in a Word, where a word is a list of characters e.g. ['c','a','t']
+% assumes that the word and slot are of equal length
+chars_match([], _).
+chars_match([SlotHead|SlotTail], [WordHead|WordTail]) :-
+	(	var(SlotHead)
+	->	chars_match(SlotTail, WordTail)
+	;	SlotHead = WordHead,
+		chars_match(SlotTail, WordTail)
+	).
+
+% evaluates true if a Slot can be unified with a word
+% each term in a slot must match a character's position in the word
+are_unifiable(Slot, Word) :-
+	same_length(Slot, Word),
+	chars_match(Slot, Word).
 	
