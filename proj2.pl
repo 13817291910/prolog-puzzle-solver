@@ -95,19 +95,24 @@ create_free_variables(Puzzle, FreeVariablePuzzle) :-
 % a slot is a sequence of non-solid squares greater than one in length
 % if free var is found, add to Accumulator
 % if non-free var found but none accumalted, keep searching
+% if non-free var found but only one var accumulated, reset accum
+%	and keep searching. Slots must have a length greater than one
 % if non-free var found and some accumulated, add slot to Slots and reset Accum
 get_slots([], Accum, AccumList, Slots) :-
 	(	length(Accum, 0)
 	->	Slots = AccumList
+	;	length(Accum, 1)
+	->	Slots = AccumList	
 	;	NewAccumList = [Accum | AccumList],
 		Slots = NewAccumList
 	).
 get_slots([H|T], Accum, AccumList, Slots) :-
 	(	var(H)
-	->	slots(T, [H|Accum], AccumList, Slots)
+	->	get_slots(T, [H|Accum], AccumList, Slots)
 	;	length(Accum, 0)
-	->	slots(T, Accum, AccumList, Slots)
+	->	get_slots(T, Accum, AccumList, Slots)
+	;	length(Accum, 1)
+	->	get_slots(T, [], AccumList, Slots)
 	;	NewAccumList = [Accum | AccumList],
-		slots(T, [], NewAccumList, Slots)
+		get_slots(T, [], NewAccumList, Slots)
 	).
-
