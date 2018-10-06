@@ -93,11 +93,21 @@ create_free_variables(Puzzle, FreeVariablePuzzle) :-
 
 % find slots inside puzzle rows / columns
 % a slot is a sequence of non-solid squares greater than one in length
-get_slots_from_row([], Accum, Accum).
-get_slots_from_row([H|T], Accum, Slot) :-
-	(	var(H)
-	->	get_slots_from_row(T, [H|Accum], Slot)
-	;	get_slots_from_row(T, Accum, Slot)
+% if free var is found, add to Accumulator
+% if non-free var found but none accumalted, keep searching
+% if non-free var found and some accumulated, add slot to Slots and reset Accum
+get_slots([], Accum, AccumList, Slots) :-
+	(	length(Accum, 0)
+	->	Slots = AccumList
+	;	NewAccumList = [Accum | AccumList],
+		Slots = NewAccumList
 	).
-
+get_slots([H|T], Accum, AccumList, Slots) :-
+	(	var(H)
+	->	slots(T, [H|Accum], AccumList, Slots)
+	;	length(Accum, 0)
+	->	slots(T, Accum, AccumList, Slots)
+	;	NewAccumList = [Accum | AccumList],
+		slots(T, [], NewAccumList, Slots)
+	).
 
