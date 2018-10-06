@@ -12,11 +12,11 @@
 
 main(PuzzleFile, WordlistFile, SolutionFile) :-
 	read_file(PuzzleFile, PuzzleCharList),
-	read_file(WordlistFile, Wordlist),
+	read_file(WordlistFile, WordList),
 	valid_puzzle(PuzzleCharList),
 	create_free_variables(PuzzleCharList, Puzzle),
 	find_all_puzzle_slots(Puzzle, Slots),
-	solve_puzzle(Puzzle, Slots, Wordlist, Solved),
+	solve_puzzle(Puzzle, Slots, WordList, Solved),
 	print_puzzle(SolutionFile, Solved).
 
 valid_puzzle([]).
@@ -66,13 +66,15 @@ put_puzzle_char(Stream, Char) :-
 	;   put_char(Stream, Char)
 	).
 
-% should hold when Puzzle is a solved version of Puzzle0, with the
-% empty slots filled in with words from WordList.  Puzzle0 and Puzzle
-% should be lists of lists of characters (single-character atoms), one
-% list per puzzle row.  WordList is also a list of lists of
-% characters, one list per word.
-
-solve_puzzle(Puzzle, _, _, Puzzle).
+% solves a puzzle represented as a list of rows by repeatedly finding
+% words and unifying them with slots until the list of words is empty
+solve_puzzle(Puzzle, _, [], Puzzle).
+solve_puzzle(Puzzle, Slots, WordList, Solved) :-
+	get_max_fillable_slot(Slots, [], MaxSlot),
+	get_unifiable_word(WordList, MaxSlot, Word),
+	MaxSlot = Word,
+	delete(WordList, Word, NewWordList),
+	solve_puzzle(Puzzle, Slots, NewWordList, Solved).
 
 % replace any underscore character with a free variable
 logical_variable(Char, Result) :-
