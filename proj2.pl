@@ -21,7 +21,7 @@ main(PuzzleFile, WordlistFile, SolutionFile) :-
 	valid_puzzle(PuzzleCharList),
 	create_free_variables(PuzzleCharList, Puzzle),
 	find_all_puzzle_slots(Puzzle, Slots),
-	remove_prefilled_words(Slots, RawWordList, WordList),
+	remove_filled_words(Slots, RawWordList, WordList),
 	solve_puzzle(Puzzle, Slots, WordList, Solved),
 	!,
 	print_puzzle(SolutionFile, Solved).
@@ -81,14 +81,17 @@ put_puzzle_char(Stream, Char) :-
 	).
 
 % Solves a puzzle represented as a list of rows by repeatedly finding
-% words and unifying them with slots until the list of words is empty
+% words and unifying them with slots until the list of words is empty.
+% Slot that are filled as a by-product of unifications must also
+% be removed.
 solve_puzzle(Puzzle, _, [], Puzzle).
 solve_puzzle(Puzzle, Slots, WordList, Solved) :-
 	get_max_fillable_slot(Slots, [], MaxSlot),
 	get_unifiable_word(WordList, MaxSlot, Word),
 	MaxSlot = Word,
 	delete(WordList, Word, NewWordList),
-	solve_puzzle(Puzzle, Slots, NewWordList, Solved).
+	remove_filled_words(Slots, NewWordList, RemovedWordList),
+	solve_puzzle(Puzzle, Slots, RemovedWordList, Solved).
 
 % Replace any underscore character with a free variable
 logical_variable(Char, Result) :-
@@ -157,12 +160,12 @@ find_all_puzzle_slots(RowPuzzle, AllSlots) :-
 % Takes a list of Slots and a list of Words and deletes any filled Slots
 % from the Word list. This is important because we don't need to search
 % for a solution to a slot that is already answered.
-remove_prefilled_words([], WordList, WordList).
-remove_prefilled_words([SlotHead|T], InputWordList, ResultWordList) :-
+remove_filled_words([], WordList, WordList).
+remove_filled_words([SlotHead|T], InputWordList, ResultWordList) :-
 	(	is_filled_slot(SlotHead)
 	->	delete(InputWordList, SlotHead, RemainingWordList),
-		remove_prefilled_words(T, RemainingWordList, ResultWordList)
-	;	remove_prefilled_words(T, InputWordList, ResultWordList)
+		remove_filled_words(T, RemainingWordList, ResultWordList)
+	;	remove_filled_words(T, InputWordList, ResultWordList)
 	).
 
 % Returns the number of filled terms in a list
