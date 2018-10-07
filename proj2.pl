@@ -17,11 +17,13 @@
 % The solution is then printed to a solution file.
 main(PuzzleFile, WordlistFile, SolutionFile) :-
 	read_file(PuzzleFile, PuzzleCharList),
-	read_file(WordlistFile, WordList),
+	read_file(WordlistFile, RawWordList),
 	valid_puzzle(PuzzleCharList),
 	create_free_variables(PuzzleCharList, Puzzle),
 	find_all_puzzle_slots(Puzzle, Slots),
+	remove_prefilled_words(Slots, RawWordList, WordList),
 	solve_puzzle(Puzzle, Slots, WordList, Solved),
+	!,
 	print_puzzle(SolutionFile, Solved).
 
 % A puzzle is valid when all rows are the same length
@@ -151,6 +153,17 @@ find_all_puzzle_slots(RowPuzzle, AllSlots) :-
 	get_all_slots(ColPuzzle, [], ColSlots),
 	append(RowSlots, [], Accum),
 	append(ColSlots, Accum, AllSlots).
+
+% Takes a list of Slots and a list of Words and deletes any filled Slots
+% from the Word list. This is important because we don't need to search
+% for a solution to a slot that is already answered.
+remove_prefilled_words([], WordList, WordList).
+remove_prefilled_words([SlotHead|T], InputWordList, ResultWordList) :-
+	(	is_filled_slot(SlotHead)
+	->	delete(InputWordList, SlotHead, RemainingWordList),
+		remove_prefilled_words(T, RemainingWordList, ResultWordList)
+	;	remove_prefilled_words(T, InputWordList, ResultWordList)
+	).
 
 % Returns the number of filled terms in a list
 % e.g. [X,Y,a,b] -> L = 2
