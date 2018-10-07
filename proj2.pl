@@ -17,11 +17,13 @@
 % The solution is then printed to a solution file.
 main(PuzzleFile, WordlistFile, SolutionFile) :-
 	read_file(PuzzleFile, PuzzleCharList),
-	read_file(WordlistFile, WordList),
+	read_file(WordlistFile, RawWordList),
 	valid_puzzle(PuzzleCharList),
 	create_free_variables(PuzzleCharList, Puzzle),
 	find_all_puzzle_slots(Puzzle, Slots),
+	remove_prefilled_words(Slots, RawWordList, WordList),
 	solve_puzzle(Puzzle, Slots, WordList, Solved),
+	!,
 	print_puzzle(SolutionFile, Solved).
 
 % A puzzle is valid when all rows are the same length
@@ -152,14 +154,25 @@ find_all_puzzle_slots(RowPuzzle, AllSlots) :-
 	append(RowSlots, [], Accum),
 	append(ColSlots, Accum, AllSlots).
 
-% Return the numbers of free variables in a list
-% e.g. free_var_length([X, a, Y], L) -> L = 2
-free_var_length([],0).
-free_var_length([H|T], L) :-
-	( 	var(H)
-	-> free_var_length(T, L1),
+% Takes a list of Slots and a list of Words and deletes any filled Slots
+% from the Word list. This is important because we don't need to search
+% for a solution to a slot that is already answered.
+remove_prefilled_words([], WordList, WordList).
+remove_prefilled_words([SlotHead|T], InputWordList, ResultWordList) :-
+	(	is_filled_slot(SlotHead)
+	->	delete(InputWordList, SlotHead, RemainingWordList),
+		remove_prefilled_words(T, RemainingWordList, ResultWordList)
+	;	remove_prefilled_words(T, InputWordList, ResultWordList)
+	).
+
+% Returns the number of filled terms in a list
+% e.g. [X,Y,a,b] -> L = 2
+filled_term_length([],0).
+filled_term_length([H|T], L) :-
+	( 	not(var(H))
+	-> filled_term_length(T, L1),
 		L is L1 + 1
-	;	free_var_length(T, L)
+	;	filled_term_length(T, L)
 	).
 
 % Finds the first slot in a list of slots with the highest number
@@ -174,9 +187,19 @@ get_max_fillable_slot([NextSlot|T], CurrSlot, MaxSlot) :-
 % True if a slot is more fillable that the currently considered slot,
 % meaning there are more free variables to be unified.
 more_fillable(CurrMaxSlot, NextSlot) :-
-	free_var_length(CurrMaxSlot, L1),
-	free_var_length(NextSlot, L2),
-	L2 > L1.
+	not(is_filled_slot(NextSlot)),
+	filled_term_length(CurrMaxSlot, TermLength1),
+	filled_term_length(NextSlot, TermLength2),
+	TermLength2 >= TermLength1,
+	length(CurrMaxSlot, SlotLength1),
+	length(NextSlot, SlotLength2),
+	SlotLength2 >= SlotLength1.
+
+% True if a slot has been unified, ie. [a,b,c]
+is_filled_slot([]).
+is_filled_slot([H|T]) :-
+	not(var(H)),
+	is_filled_slot(T).
 
 % True if all the terms in a slot match the corresponding characters
 % in a Word, where a word is a list of chars e.g. ['c','a','t']
