@@ -229,3 +229,58 @@ get_unifiable_word([WordsHead|WordsTail], Slot, Word) :-
 	->	Word = WordsHead
 	;	get_unifiable_word(WordsTail, Slot, Word)
 	).
+
+% Accumulates a list of all slots that are unifiable with a word
+get_all_unifiable_slots([], _, Slots, Slots).
+get_all_unifiable_slots([SlotHead|T], Word, Accum, UnifiableSlots) :-
+	(	are_unifiable(SlotHead, Word)
+	->  get_all_unifiable_slots(T, Word, [SlotHead|Accum], UnifiableSlots)
+	;	get_all_unifiable_slots(T, Word, Accum, UnifiableSlots)
+	).
+
+% Finds the slot that is a the best match for a word
+% Assumes that all slots are known to be unifiable with a word. The most
+% matching slot if the slot with the most prefilled terms
+% e.g. Slot [X,a,Z] matches Word [c,a,t] better than Slot [A,B,C]
+get_most_matching_slot([], Slot, Slot).
+get_most_matching_slot([SlotHead|T], PrevSlot, Slot) :-
+	filled_term_length(SlotHead, CurrSlotLen),
+	filled_term_length(PrevSlot, PrevSlotLen),
+	(	CurrSlotLen > PrevSlotLen
+	->	get_most_matching_slot(T, SlotHead, Slot)
+	;	get_most_matching_slot(T, PrevSlot, Slot)
+	).
+
+% Gets a unique word from a list. Word = [] if no unique word exists
+get_unique_word(_, [], []).
+get_unique_word(WordList, [WordListHead|T], Word) :-
+	(	is_unique_word(WordList, WordListHead)
+	->	Word = WordListHead	
+	;	get_unique_word(WordList, T, Word)
+	).
+
+% True if a Word is the only word of it's length in a list of words
+is_unique_word(WordList, Word) :-
+	length(Word, WordLen),
+	count_words_of_length(WordList, WordLen, Count),
+	Count is 1.
+
+% Finds the number of words in a list of words that match a given length
+count_words_of_length([], _, 0).
+count_words_of_length([WordListHead|T], WordLen, C) :-
+	(	length(WordListHead, WordLen)
+	->	count_words_of_length(T, WordLen, C1),
+		C is C1 + 1
+	;	count_words_of_length(T, WordLen, C)
+	).
+
+% Finds the first unique word in a list of words, or returns the first
+% word in the word list if no unique options exist.
+get_next_best_word([WordListHead|T], Word) :-
+	get_unique_word([WordListHead|T], [WordListHead|T], UniqueWord),
+	(	length(UniqueWord, L),
+		L is 0
+	->	Word = WordListHead,
+		!
+	;	Word = UniqueWord
+	).
