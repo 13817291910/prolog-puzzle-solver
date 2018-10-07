@@ -93,6 +93,15 @@ solve_puzzle(Puzzle, Slots, WordList, Solved) :-
 	remove_filled_words(Slots, NewWordList, RemovedWordList),
 	solve_puzzle(Puzzle, Slots, RemovedWordList, Solved).
 
+% solve_puzzle(Puzzle, _, [], Puzzle).
+% solve_puzzle(Puzzle, Slots, WordList, Solved) :-
+% 	get_max_fillable_slot(Slots, [], MaxSlot),
+% 	get_unifiable_word(WordList, MaxSlot, Word),
+% 	MaxSlot = Word,
+% 	delete(WordList, Word, NewWordList),
+% 	remove_filled_words(Slots, NewWordList, RemovedWordList),
+% 	solve_puzzle(Puzzle, Slots, RemovedWordList, Solved).
+
 % Replace any underscore character with a free variable
 logical_variable(Char, Result) :-
 	(	Char = '_'
@@ -238,6 +247,32 @@ get_all_unifiable_slots([SlotHead|T], Word, Accum, UnifiableSlots) :-
 	;	get_all_unifiable_slots(T, Word, Accum, UnifiableSlots)
 	).
 
+% True if a word can only be unified with a single slot, because of
+% matching terms within the slot. If true, Slot binds to the single
+% unifiable slot in the list of Slots.
+unifiable_with_one_slot(Slots, Word, Slot) :-
+	get_all_unifiable_slots(Slots, Word, [], UnifiableSlots),
+	(	length(UnifiableSlots, 1)
+	->	UnifiableSlots = [H|_],
+		Slot = H
+	).
+
+% Finds a words in a word list that can be uniquely unified 
+% by a single slot each
+find_single_unifiable_words([], _, Words, Words).
+find_single_unifiable_words([WH|WT], Slots, Accum, Words) :-
+	(	unifiable_with_one_slot(Slots, WH, _)
+	->	find_single_unifiable_words(WT, Slots, [WH|Accum], Words)
+	;	find_single_unifiable_words(WT, Slots, Accum, Words)
+	).
+
+% Unifies 'Slot' with a slot in a list of Slots if it's length matches Len
+get_slot_of_length([SlotsHead|T], Len, Slot) :-
+	(	length(SlotsHead, Len)
+	-> 	Slot = SlotsHead
+	;	get_slot_of_length(T, Len, Slot)
+	).
+
 % Finds the slot that is a the best match for a word
 % Assumes that all slots are known to be unifiable with a word. The most
 % matching slot if the slot with the most prefilled terms
@@ -280,7 +315,37 @@ get_next_best_word([WordListHead|T], Word) :-
 	get_unique_word([WordListHead|T], [WordListHead|T], UniqueWord),
 	(	length(UniqueWord, L),
 		L is 0
-	->	Word = WordListHead,
+	->	Word = [],
 		!
 	;	Word = UniqueWord
 	).
+
+% If there's a word that can only be matched with one slot because it's 
+% 	length is unique in the words list, pick that.
+% If not, see if any slot exists that can only be unified with one word.
+% Otherwise choose the slot that reduces further choices that most and
+% 	find a word in the Words list that it unifies with.
+% choose_slots_and_word([SH|ST], [WH|WT], BestSlot, BestWord)
+	get_unique_word([WH|WT], [WH|WT], UniqueWord),
+	(	length(UniqueWord, L),
+		L > 0
+	->	BestWord = UniqueWord,
+		get_slot_of_length([SH|ST], L, MatchingLenSlot),
+		BestSlot is MatchingLenSlot
+	;	(	find_single_unifiable_words([WH|WT],[SH|ST], [], SingleWords),
+			(	length(SingleWords, SWLen),
+				SWLen > 0
+			->	
+
+			;
+
+			).
+
+		;	get_max_fillable_slot(Slots, [], MaxSlot),
+			get_unifiable_word(WordList, MaxSlot, UnifiableWord),
+			BestSlot is MaxSlot,
+			BestWord is UnifiableWord
+		).
+	).
+
+% possiby otherwise choose longest word and get most_unifiable_slot
