@@ -11,6 +11,7 @@
 % Date created: 30.09.2018
 
 :- ensure_loaded(library(clpfd)).
+:- use_module(library(pairs)).
 
 % Reads a puzzle file and a file containing a list of words and
 % solves the puzzle by creating a representation of the puzzle as 'slots',
@@ -21,16 +22,24 @@ main(PuzzleFile, WordlistFile, SolutionFile) :-
 	read_file(WordlistFile, RawWordList),
 	valid_puzzle(PuzzleCharList),
 	create_free_variables(PuzzleCharList, Puzzle),
-	find_all_puzzle_slots(Puzzle, Slots),
-	remove_filled_words(Slots, RawWordList, WordList),
-	solve_puzzle(Puzzle, Slots, WordList, Solved),
+	find_all_puzzle_slots(Puzzle, UnsortedSlots),
+	sort_by_length_desc(UnsortedSlots, Slots),
 	!,
+	remove_filled_words(Slots, RawWordList, WordList),
+	remove_filled_slots(Slots, UnfilledSlots),
+	solve_puzzle(Puzzle, UnfilledSlots, WordList, Solved),
 	print_puzzle(SolutionFile, Solved).
 
 % A puzzle is valid when all rows are the same length
 valid_puzzle([]).
 valid_puzzle([Row|Rows]) :-
 	maplist(same_length(Row), Rows).
+
+% Sorts a list of lists in descending order by sublist length
+sort_by_length_desc(List, ByLength) :-
+	map_list_to_pairs(length, List, Pairs),
+	sort(1, @>=, Pairs, Sorted),
+	pairs_values(Sorted, ByLength).
 
 % Reads a file and into a variable Content
 read_file(Filename, Content) :-
@@ -93,6 +102,16 @@ solve_puzzle(Puzzle, Slots, WordList, Solved) :-
 	remove_filled_words(Slots, NewWordList, UnfilledWordList),
 	remove_filled_slots(Slots, UnfilledSlots),
 	solve_puzzle(Puzzle, UnfilledSlots, UnfilledWordList, Solved).
+
+% True for all words that can unify with a given slot
+unifiable_with_slot(Slot, WordList, Word) :-
+	member(Word, WordList),
+  	are_unifiable(Slot, Word).
+
+% Choose the first (longest) Slot and find a word to unify with it
+choose_slots_and_word([SlotHead|_], WordList, BestSlot, BestWord) :-
+	BestSlot = SlotHead,
+	unifiable_with_slot(SlotHead, WordList, BestWord).
 
 % Replace any underscore character with a free variable
 logical_variable(Char, Result) :-
@@ -172,6 +191,10 @@ remove_filled_words([SlotHead|T], InputWordList, ResultWordList) :-
 % Remove all Slots that have been filled in from a list of slots
 remove_filled_slots(InputSlots, OutputSlots) :-
     exclude(is_filled_slot, InputSlots, OutputSlots).
+
+% Filters word list to include only words unifiable with a given slot
+get_unifiable_words(Slot, WordList, UnifiableWords) :-
+	include(are_unifiable(Slot), WordList, UnifiableWords).
 
 % Returns the number of filled terms in a list
 % e.g. [X,Y,a,b] -> L = 2
@@ -325,26 +348,4 @@ get_next_best_word([WordListHead|T], Word) :-
 	->	Word = [],
 		!
 	;	Word = UniqueWord
-	).
-
-% If there's a word that can only be matched with one slot because it's 
-% 	length is unique in the words list, pick that.
-% If not, see if any slot exists that can only be unified with one word.
-% Otherwise choose the slot that reduces further choices that most and
-% 	find a word in the Words list that it unifies with.
-choose_slots_and_word([SH|ST], [WH|WT], BestSlot, BestWord) :-
-	(	get_unique_word([WH|WT], [WH|WT], UniqueWord)
-	->	BestWord = UniqueWord,
-		length(BestWord, L),
-		get_slot_of_length([SH|ST], L, MatchingLenSlot),
-		BestSlot = MatchingLenSlot
-	;	(	get_only_matching_word_and_slot([WH|WT],[SH|ST], 
-											MatchWord, MatchSlot)
-		->	BestWord = MatchWord,
-			BestSlot = MatchSlot
-		;	get_max_fillable_slot([SH|ST], [], MaxSlot),
-			get_unifiable_word([WH|WT], MaxSlot, UnifiableWord),
-			BestSlot = MaxSlot,
-			BestWord = UnifiableWord
-		)
 	).
