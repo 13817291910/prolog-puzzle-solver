@@ -1,21 +1,38 @@
-% Project 2 - Fillin Puzzles solver
-% A program for solving fill-it-in style puzzles
-% COMP30020 Declarative Programming, 2018 Semester 2
+% Module: proj2
+% Author: Adam Quigley
+% Last updated: 09.10.2018
+%
+% Program for solving Fill-it-in style puzzles
+% COMP30020 Declarative Programming, 2018 Semester 2, Project 2
 % The University of Melbourne, School of Computing and Information Systems
 % 
-% The program takes a list of words and an empty or incomplete puzzle 
-% file and generates a solution. The solution is then written to a 
-% separate solution file.
-%
-% Author: Adam Quigley
-% Date created: 30.09.2018
+% This module solves fillin (fill-it-in) style puzzles by constructing a
+% representation of the puzzle at a list of 'slots', and repeatedly
+% trying valid words from the provided word list until it finds a 
+% solution. Once found, the solution is written to a solution file.
+% 
+% The strategy is as follows. The program reads in a puzzle file and
+% creates a list of 'Slots' by aggregating series of non-black ('#') 
+% squares of length greater than one, and sorts the list of slots.
+% It then proceeds to match words with slots. If there is a word 
+% that uniquely matches a slot it will be immediately unified with that 
+% slot, otherwise the largest slot is selected and unified with valid 
+% matching word. If no solution is found, the program backtracks and 
+% tries different combinations of words and slots until the puzzle 
+% is solved. 
+% 
+% Usage:
+% Call program with main(PuzzleFile, WordlistFile, SolutionFile) where
+% PuzzleFile 	- the dir location of a valid puzzle file
+% WordlistFile 	- the dir location of a list of words
+% SolutionFile 	- the dir location of a file to write a solution to
 
 :- ensure_loaded(library(clpfd)).
 :- use_module(library(pairs)).
 
 % Reads a puzzle file and a file containing a list of words and
-% solves the puzzle by creating a representation of the puzzle as 'slots',
-% and unifying the slots with words from the word list.
+% solves the puzzle by creating a representation of the puzzle as 'slots'.
+% It repeatedly matches slots with words until a solution is found.
 % The solution is then printed to a solution file.
 main(PuzzleFile, WordlistFile, SolutionFile) :-
 	read_file(PuzzleFile, PuzzleCharList),
@@ -43,8 +60,8 @@ sort_by_length_desc(List, ByLength) :-
 	sort(1, @>=, Pairs, Sorted),
 	pairs_values(Sorted, ByLength).
 
-% Takes a list of Slots and a list of Words and deletes any filled Slots
-% from the Word list. This is important because we don't need to search
+% Takes a list of slots and a list of sords and deletes any filled slots
+% from the word list. This is important because we don't need to search
 % for a solution to a slot that is already answered.
 remove_filled_words([], WordList, WordList).
 remove_filled_words([SlotHead|T], InputWordList, ResultWordList) :-
@@ -54,14 +71,13 @@ remove_filled_words([SlotHead|T], InputWordList, ResultWordList) :-
 	;	remove_filled_words(T, InputWordList, ResultWordList)
 	).
 
-% Remove all Slots that have been filled in from a list of slots
+% Remove all slots that have been filled in from a list of slots
 remove_filled_slots(InputSlots, OutputSlots) :-
     exclude(is_filled_slot, InputSlots, OutputSlots).
 
 % Solves a puzzle represented as a list of rows by repeatedly finding
 % words and unifying them with slots until the list of words is empty.
-% Slot that are filled as a by-product of unifications must also
-% be removed.
+% Slot that are filled as a by-product of unifications must be removed.
 solve_puzzle(Puzzle, _, [], Puzzle).
 solve_puzzle(Puzzle, Slots, WordList, Solved) :-
 	choose_slots_and_word(Slots, WordList, BestSlot, BestWord),
@@ -76,7 +92,9 @@ unifiable_with_slot(Slot, WordList, Word) :-
 	member(Word, WordList),
   	are_unifiable(Slot, Word).
 
-% Choose the first (longest) Slot and find a word to unify with it
+% If there's a word of a unique length, immediately unify it with
+% the single slot that matches its length.
+% Otheriwse choose first (longest) slot and find a unifiable word.
 choose_slots_and_word([SlotHead|ST], [WH|WT], BestSlot, BestWord) :-
 	(	get_unique_word([WH|WT], [WH|WT], UniqueWord)
 	->	BestWord = UniqueWord,
@@ -87,22 +105,18 @@ choose_slots_and_word([SlotHead|ST], [WH|WT], BestSlot, BestWord) :-
 		unifiable_with_slot(SlotHead, [WH|WT], BestWord)
 	).
 
-% choose_slots_and_word([SlotHead|_], WordList, BestSlot, BestWord) :-
-% 	BestSlot = SlotHead,
-% 	unifiable_with_slot(SlotHead, WordList, BestWord).
-
-% Gets a unique word from a list. Word = [] if no unique word exists
+% True if a word of unique length exists in a list of words
 get_unique_word(WordList, [WordListHead|T], Word) :-
 (	is_unique_word(WordList, WordListHead)
 ->	Word = WordListHead	
 ;	get_unique_word(WordList, T, Word)
 ).
 
-% True if a Word is the only word of it's length in a list of words
+% True if a word is the only word of its length in a list of words
 is_unique_word(WordList, Word) :-
-length(Word, WordLen),
-count_words_of_length(WordList, WordLen, Count),
-Count is 1.
+	length(Word, WordLen),
+	count_words_of_length(WordList, WordLen, Count),
+	Count is 1.
 
 % Finds the number of words in a list of words that match a given length
 count_words_of_length([], _, 0).
