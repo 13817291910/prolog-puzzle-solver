@@ -84,6 +84,9 @@ remove_filled_slots(InputSlots, OutputSlots) :-
 % Solves a puzzle represented as a list of rows by repeatedly finding
 % words and unifying them with slots until the list of words is empty.
 % Slot that are filled as a by-product of unifications must be removed.
+% Slots are sorted by the number of unifiable words, then by length desc.
+% Both are stable sorts. This ensures that the longest slots are tried
+% first, and the slot with the minimum matches tried.
 solve_puzzle(Puzzle, _, [], Puzzle).
 solve_puzzle(Puzzle, Slots, WordList, Solved) :-
 	choose_slots_and_word(Slots, WordList, BestSlot, BestWord),
@@ -91,7 +94,9 @@ solve_puzzle(Puzzle, Slots, WordList, Solved) :-
 	delete(WordList, BestWord, NewWordList),
 	remove_filled_words(Slots, NewWordList, UnfilledWordList),
 	remove_filled_slots(Slots, UnfilledSlots),
-	solve_puzzle(Puzzle, UnfilledSlots, UnfilledWordList, Solved).
+	sort_by_least_unifiable_words(UnfilledSlots, WordList, ByUnifiableWords),
+	sort_by_length_desc(ByUnifiableWords, ResortedSlots),
+	solve_puzzle(Puzzle, ResortedSlots, UnfilledWordList, Solved).
 
 % True for all words that can unify with a given slot
 unifiable_with_slot(Slot, WordList, Word) :-
