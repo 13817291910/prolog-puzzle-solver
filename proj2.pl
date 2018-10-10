@@ -60,6 +60,12 @@ sort_by_length_desc(List, ByLength) :-
 	sort(1, @>=, Pairs, Sorted),
 	pairs_values(Sorted, ByLength).
 
+% Sorts a list of slots from least possible unifications to most
+sort_by_least_unifiable_words(Slots, WordList, ByNumUnifiableWords) :-
+	map_list_to_pairs(num_of_unifiable_words(WordList), Slots, Pairs),
+	sort(1, @=<, Pairs, Sorted),
+	pairs_values(Sorted, ByNumUnifiableWords).
+
 % Takes a list of slots and a list of sords and deletes any filled slots
 % from the word list. This is important because we don't need to search
 % for a solution to a slot that is already answered.
@@ -78,6 +84,9 @@ remove_filled_slots(InputSlots, OutputSlots) :-
 % Solves a puzzle represented as a list of rows by repeatedly finding
 % words and unifying them with slots until the list of words is empty.
 % Slot that are filled as a by-product of unifications must be removed.
+% Slots are sorted by the number of unifiable words, then by length desc.
+% Both are stable sorts. This ensures that the longest slots are tried
+% first, and the slot with the minimum matches tried.
 solve_puzzle(Puzzle, _, [], Puzzle).
 solve_puzzle(Puzzle, Slots, WordList, Solved) :-
 	choose_slots_and_word(Slots, WordList, BestSlot, BestWord),
@@ -85,12 +94,23 @@ solve_puzzle(Puzzle, Slots, WordList, Solved) :-
 	delete(WordList, BestWord, NewWordList),
 	remove_filled_words(Slots, NewWordList, UnfilledWordList),
 	remove_filled_slots(Slots, UnfilledSlots),
-	solve_puzzle(Puzzle, UnfilledSlots, UnfilledWordList, Solved).
+	sort_by_least_unifiable_words(UnfilledSlots, WordList, ByUnifiableWords),
+	sort_by_length_desc(ByUnifiableWords, ResortedSlots),
+	solve_puzzle(Puzzle, ResortedSlots, UnfilledWordList, Solved).
 
 % True for all words that can unify with a given slot
 unifiable_with_slot(Slot, WordList, Word) :-
 	member(Word, WordList),
   	are_unifiable(Slot, Word).
+
+% Collects all words that are unifiable with a slot into a list
+all_unifiable_words(Slot, WordList, UnifiableWords)  :- 
+	findall(Word, unifiable_with_slot(Slot, WordList, Word), UnifiableWords).
+
+% Finds the number of words that can unify with a particular slot
+num_of_unifiable_words(Slot, WordList, N) :-
+	all_unifiable_words(Slot, WordList, UnifiableWords),
+	length(UnifiableWords, N).
 
 % If there's a word of a unique length, immediately unify it with
 % the single slot that matches its length.
