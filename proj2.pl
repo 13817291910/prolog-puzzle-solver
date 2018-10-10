@@ -60,6 +60,12 @@ sort_by_length_desc(List, ByLength) :-
 	sort(1, @>=, Pairs, Sorted),
 	pairs_values(Sorted, ByLength).
 
+% Sorts a list of slots from least possible unifications to most
+sort_by_least_unifiable_words(Slots, WordList, ByNumUnifiableWords) :-
+	map_list_to_pairs(num_of_unifiable_words(WordList), Slots, Pairs),
+	sort(1, @=<, Pairs, Sorted),
+	pairs_values(Sorted, ByNumUnifiableWords).
+
 % Takes a list of slots and a list of sords and deletes any filled slots
 % from the word list. This is important because we don't need to search
 % for a solution to a slot that is already answered.
