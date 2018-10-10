@@ -92,6 +92,15 @@ unifiable_with_slot(Slot, WordList, Word) :-
 	member(Word, WordList),
   	are_unifiable(Slot, Word).
 
+% Collects all words that are unifiable with a slot into a list
+all_unifiable_words(Slot, WordList, UnifiableWords)  :- 
+	findall(Word, unifiable_with_slot(Slot, WordList, Word), UnifiableWords).
+
+% Finds the number of words that can unify with a particular slot
+num_of_unifiable_words(Slot, WordList, N) :-
+	all_unifiable_words(Slot, WordList, UnifiableWords),
+	length(UnifiableWords, N).
+
 % If there's a word of a unique length, immediately unify it with
 % the single slot that matches its length.
 % Otheriwse choose first (longest) slot and find a unifiable word.
